@@ -4,19 +4,33 @@
 <resources>
 
     <!-- New UI CPU Core selection - Default -->
-    <string-array name="emuCoresEntries" translatable="false">
+    <string-array name="emuCoresEntriesX86_64" translatable="false">
+        <item>Interpreter</item>
+        <item>Cached Interpreter</item>
+        <item>JIT Recompiler</item>
+    </string-array>
+    <integer-array name="emuCoresValuesX86_64" translatable="false">
+        <item>0</item>
+        <item>5</item>
+        <item>1</item>
+    </integer-array>
+    <string-array name="emuCoresEntriesARM64" translatable="false">
         <item>Interpreter</item>
         <item>Cached Interpreter</item>
         <item>JIT ARM64 Recompiler</item>
-        <!--<item>JIT64 Recompiler</item>
-        <item>JITIL Recompiler</item>-->
     </string-array>
-    <integer-array name="emuCoresValues" translatable="false">
+    <integer-array name="emuCoresValuesARM64" translatable="false">
         <item>0</item>
         <item>5</item>
         <item>4</item>
-        <!--<item>1</item>
-        <item>2</item>-->
+    </integer-array>
+    <string-array name="emuCoresEntriesGeneric" translatable="false">
+        <item>Interpreter</item>
+        <item>Cached Interpreter</item>
+    </string-array>
+    <integer-array name="emuCoresValuesGeneric" translatable="false">
+        <item>0</item>
+        <item>5</item>
     </integer-array>
 
     <!-- Video backend selection -->
@@ -34,7 +48,7 @@
     </integer-array>
 
     <!-- Wii Remote extensions -->
-    <string-array name="wiimoteExtensions" translatable="false">
+    <string-array name="wiimoteExtensionsEntries" translatable="false">
         <item>None</item>
         <item>Nunchuk</item>
         <item>Classic</item>
@@ -42,6 +56,14 @@
         <item>Drums</item>
         <item>Turntable</item>
     </string-array>
+    <integer-array name="wiimoteExtensionsValues" translatable="false">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+        <item>5</item>
+    </integer-array>
 
     <!-- Texture Cache Accuracy Preference -->
     <string-array name="textureCacheAccuracyEntries" translatable="false">
@@ -67,12 +89,22 @@
         <item>2</item>
     </integer-array>
 
+    <!-- Ubershader Mode Preference -->
+    <string-array name="uberShaderModeEntries" translatable="false">
+        <item>Disabled</item>
+        <item>Hybrid</item>
+        <item>Exclusive</item>
+    </string-array>
+    <integer-array name="uberShaderModeValues" translatable="false">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </integer-array>
+
     <!-- Internal Resolution Preference -->
     <string-array name="internalResolutionEntries" translatable="false">
         <item>1x Native (640x528)</item>
-        <item>1.5x Native (960x792)</item>
         <item>2x Native (1280x1056) for 720p</item>
-        <item>2.5x Native (1600x1320)</item>
         <item>3x Native (1920x1584) for 1080p</item>
         <item>4x Native (2560x2112)</item>
         <item>5x Native (3200x2640)</item>
@@ -80,9 +112,7 @@
     </string-array>
     <integer-array name="internalResolutionValues" translatable="false">
         <item>2</item>
-        <item>3</item>
         <item>4</item>
-        <item>5</item>
         <item>6</item>
         <item>7</item>
         <item>8</item>

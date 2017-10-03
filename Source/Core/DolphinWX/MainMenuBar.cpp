@@ -8,10 +8,12 @@
 #include <vector>
 
 #include "Common/CDUtils.h"
+#include "Core/CommonTitles.h"
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
 #include "Core/PowerPC/PowerPC.h"
 #include "Core/State.h"
+#include "DiscIO/Enums.h"
 #include "DiscIO/NANDContentLoader.h"
 #include "DolphinWX/Globals.h"
 #include "DolphinWX/WxUtils.h"
@@ -28,8 +30,6 @@ MainMenuBar::MainMenuBar(MenuType type, long style) : wxMenuBar{style}, m_type{t
 {
   BindEvents();
   AddMenus();
-
-  MainMenuBar::Refresh(false);
 }
 
 void MainMenuBar::Refresh(bool erase_background, const wxRect* rect)
@@ -79,9 +79,10 @@ wxMenu* MainMenuBar::CreateFileMenu() const
   auto* const file_menu = new wxMenu;
   file_menu->Append(wxID_OPEN, _("&Open..."));
   file_menu->Append(IDM_CHANGE_DISC, _("Change &Disc..."));
+  file_menu->Append(IDM_EJECT_DISC, _("Eject Disc"));
   file_menu->Append(IDM_DRIVES, _("&Boot from DVD Backup"), external_drive_menu);
   file_menu->AppendSeparator();
-  file_menu->Append(wxID_REFRESH, _("&Refresh List"));
+  file_menu->Append(wxID_REFRESH, _("&Refresh Game List"));
   file_menu->AppendSeparator();
   file_menu->Append(wxID_EXIT, _("E&xit") + "\tAlt+F4");
 
@@ -121,7 +122,7 @@ wxMenu* MainMenuBar::CreateEmulationMenu() const
   emulation_menu->Append(IDM_STOP, _("&Stop"));
   emulation_menu->Append(IDM_RESET, _("&Reset"));
   emulation_menu->AppendSeparator();
-  emulation_menu->Append(IDM_TOGGLE_FULLSCREEN, _("&Fullscreen"));
+  emulation_menu->Append(IDM_TOGGLE_FULLSCREEN, _("Toggle &Fullscreen"));
   emulation_menu->Append(IDM_FRAMESTEP, _("&Frame Advance"));
   emulation_menu->AppendSeparator();
   emulation_menu->Append(IDM_SCREENSHOT, _("Take Screenshot"));
@@ -140,6 +141,7 @@ wxMenu* MainMenuBar::CreateMovieMenu() const
 
   movie_menu->Append(IDM_RECORD, _("Start Re&cording Input"));
   movie_menu->Append(IDM_PLAY_RECORD, _("P&lay Input Recording..."));
+  movie_menu->Append(IDM_STOP_RECORD, _("Stop Playing/Recording Input"));
   movie_menu->Append(IDM_RECORD_EXPORT, _("Export Recording..."));
   movie_menu->AppendCheckItem(IDM_RECORD_READ_ONLY, _("&Read-Only Mode"));
   movie_menu->Append(IDM_TAS_INPUT, _("TAS Input"));
@@ -167,7 +169,7 @@ wxMenu* MainMenuBar::CreateMovieMenu() const
 wxMenu* MainMenuBar::CreateOptionsMenu() const
 {
   auto* const options_menu = new wxMenu;
-  options_menu->Append(wxID_PREFERENCES, _("Co&nfigure..."));
+  options_menu->Append(wxID_PREFERENCES, _("Co&nfiguration"));
   options_menu->AppendSeparator();
   options_menu->Append(IDM_CONFIG_GFX_BACKEND, _("&Graphics Settings"));
   options_menu->Append(IDM_CONFIG_AUDIO, _("&Audio Settings"));
@@ -206,22 +208,46 @@ wxMenu* MainMenuBar::CreateToolsMenu() const
   for (int i = 0; i < 4; i++)
   {
     wiimote_menu->AppendCheckItem(IDM_CONNECT_WIIMOTE1 + i,
-                                  wxString::Format(_("Connect Wiimote %i"), i + 1));
+                                  wxString::Format(_("Connect Wii Remote %i"), i + 1));
   }
   wiimote_menu->AppendSeparator();
   wiimote_menu->AppendCheckItem(IDM_CONNECT_BALANCEBOARD, _("Connect Balance Board"));
 
   auto* const tools_menu = new wxMenu;
-  tools_menu->Append(IDM_MEMCARD, _("&Memcard Manager (GC)"));
+  tools_menu->Append(IDM_MEMCARD, _("&Memory Card Manager (GC)"));
   tools_menu->Append(IDM_IMPORT_SAVE, _("Import Wii Save..."));
   tools_menu->Append(IDM_EXPORT_ALL_SAVE, _("Export All Wii Saves"));
+  tools_menu->AppendSeparator();
+  auto* const gc_bios_menu = new wxMenu;
+  gc_bios_menu->Append(IDM_LOAD_GC_IPL_JAP, _("NTSC-J"),
+                       _("Load NTSC-J GameCube Main Menu from the JAP folder."));
+  gc_bios_menu->Append(IDM_LOAD_GC_IPL_USA, _("NTSC-U"),
+                       _("Load NTSC-U GameCube Main Menu from the USA folder."));
+  gc_bios_menu->Append(IDM_LOAD_GC_IPL_EUR, _("PAL"),
+                       _("Load PAL GameCube Main Menu from the EUR folder."));
+  tools_menu->AppendSubMenu(gc_bios_menu, _("Load GameCube Main Menu"),
+                            _("Load a GameCube Main Menu located under Dolphin's GC folder."));
+  tools_menu->AppendSeparator();
   tools_menu->Append(IDM_CHEATS, _("&Cheat Manager"));
   tools_menu->Append(IDM_NETPLAY, _("Start &NetPlay..."));
-  tools_menu->Append(IDM_MENU_INSTALL_WAD, _("Install WAD..."));
-  tools_menu->Append(IDM_LOAD_WII_MENU, dummy_string);
   tools_menu->Append(IDM_FIFOPLAYER, _("FIFO Player"));
   tools_menu->AppendSeparator();
-  tools_menu->AppendSubMenu(wiimote_menu, _("Connect Wiimotes"));
+  tools_menu->Append(IDM_MENU_INSTALL_WAD, _("Install WAD..."));
+  tools_menu->Append(IDM_LOAD_WII_MENU, dummy_string);
+  tools_menu->Append(IDM_IMPORT_NAND, _("Import BootMii NAND Backup..."));
+  tools_menu->Append(IDM_EXTRACT_CERTIFICATES, _("Extract Certificates from NAND"));
+  auto* const online_update_menu = new wxMenu;
+  online_update_menu->Append(IDM_PERFORM_ONLINE_UPDATE_CURRENT, _("Current Region"));
+  online_update_menu->AppendSeparator();
+  online_update_menu->Append(IDM_PERFORM_ONLINE_UPDATE_EUR, _("Europe"));
+  online_update_menu->Append(IDM_PERFORM_ONLINE_UPDATE_JPN, _("Japan"));
+  online_update_menu->Append(IDM_PERFORM_ONLINE_UPDATE_KOR, _("Korea"));
+  online_update_menu->Append(IDM_PERFORM_ONLINE_UPDATE_USA, _("United States"));
+  tools_menu->AppendSubMenu(
+      online_update_menu, _("Perform Online System Update"),
+      _("Update the Wii system software to the latest version from Nintendo."));
+  tools_menu->AppendSeparator();
+  tools_menu->AppendSubMenu(wiimote_menu, _("Connect Wii Remotes"));
 
   return tools_menu;
 }
@@ -276,6 +302,8 @@ wxMenu* MainMenuBar::CreateViewMenu() const
   columns_menu->Check(IDM_SHOW_SYSTEM, config_instance.m_showSystemColumn);
   columns_menu->AppendCheckItem(IDM_SHOW_BANNER, _("Banner"));
   columns_menu->Check(IDM_SHOW_BANNER, config_instance.m_showBannerColumn);
+  columns_menu->AppendCheckItem(IDM_SHOW_TITLE, _("Title"));
+  columns_menu->Check(IDM_SHOW_TITLE, config_instance.m_showTitleColumn);
   columns_menu->AppendCheckItem(IDM_SHOW_MAKER, _("Maker"));
   columns_menu->Check(IDM_SHOW_MAKER, config_instance.m_showMakerColumn);
   columns_menu->AppendCheckItem(IDM_SHOW_FILENAME, _("File Name"));
@@ -302,6 +330,8 @@ wxMenu* MainMenuBar::CreateViewMenu() const
   if (m_type == MenuType::Debug)
   {
     view_menu->AppendCheckItem(IDM_REGISTER_WINDOW, _("&Registers"));
+    // i18n: This kind of "watch" is used for watching emulated memory.
+    // It's not related to timekeeping devices.
     view_menu->AppendCheckItem(IDM_WATCH_WINDOW, _("&Watch"));
     view_menu->AppendCheckItem(IDM_BREAKPOINT_WINDOW, _("&Breakpoints"));
     view_menu->AppendCheckItem(IDM_MEMORY_WINDOW, _("&Memory"));
@@ -399,10 +429,10 @@ wxMenu* MainMenuBar::CreateDebugMenu()
                                     _("Disable docking of perspective panes to main window"));
 
   auto* const debug_menu = new wxMenu;
-  debug_menu->Append(IDM_STEP, _("Step &Into\tF11"));
-  debug_menu->Append(IDM_STEPOVER, _("Step &Over\tF10"));
-  debug_menu->Append(IDM_STEPOUT, _("Step O&ut\tSHIFT+F11"));
-  debug_menu->Append(IDM_TOGGLE_BREAKPOINT, _("Toggle &Breakpoint\tF9"));
+  debug_menu->Append(IDM_STEP, _("Step &Into"));
+  debug_menu->Append(IDM_STEPOVER, _("Step &Over"));
+  debug_menu->Append(IDM_STEPOUT, _("Step O&ut"));
+  debug_menu->Append(IDM_TOGGLE_BREAKPOINT, _("Toggle &Breakpoint"));
   debug_menu->AppendSeparator();
   debug_menu->AppendSubMenu(perspective_menu, _("Perspectives"), _("Edit Perspectives"));
 
@@ -414,16 +444,23 @@ wxMenu* MainMenuBar::CreateSymbolsMenu() const
   auto* const symbols_menu = new wxMenu;
   symbols_menu->Append(IDM_CLEAR_SYMBOLS, _("&Clear Symbols"),
                        _("Remove names from all functions and variables."));
-  symbols_menu->Append(IDM_SCAN_FUNCTIONS, _("&Generate Symbol Map"),
-                       _("Recognise standard functions from sys\\totaldb.dsy, and use generic zz_ "
-                         "names for other functions."));
+  auto* const generate_symbols_menu = new wxMenu;
+  generate_symbols_menu->Append(IDM_SCAN_FUNCTIONS, _("&Address"),
+                                _("Use generic zz_ names for functions."));
+  generate_symbols_menu->Append(
+      IDM_SCAN_SIGNATURES, _("&Signature Database"),
+      _("Recognise standard functions from Sys/totaldb.dsy, and use generic zz_ "
+        "names for other functions."));
+  generate_symbols_menu->Append(IDM_SCAN_RSO, _("&RSO Modules"),
+                                _("Find functions based on RSO modules (experimental)..."));
+  symbols_menu->AppendSubMenu(generate_symbols_menu, _("&Generate Symbols From"));
   symbols_menu->AppendSeparator();
   symbols_menu->Append(IDM_LOAD_MAP_FILE, _("&Load Symbol Map"),
                        _("Try to load this game's function names automatically - but doesn't check "
                          ".map files stored on the disc image yet."));
   symbols_menu->Append(IDM_SAVEMAPFILE, _("&Save Symbol Map"),
                        _("Save the function names for each address to a .map file in your user "
-                         "settings map folder, named after the title id."));
+                         "settings map folder, named after the title ID."));
   symbols_menu->AppendSeparator();
   symbols_menu->Append(
       IDM_LOAD_MAP_FILE_AS, _("Load &Other Map File..."),
@@ -432,31 +469,31 @@ wxMenu* MainMenuBar::CreateSymbolsMenu() const
       IDM_LOAD_BAD_MAP_FILE, _("Load &Bad Map File..."),
       _("Try to load a .map file that might be from a slightly different version."));
   symbols_menu->Append(IDM_SAVE_MAP_FILE_AS, _("Save Symbol Map &As..."),
-                       _("Save the function names and addresses for this game as a .map file. If "
-                         "you want to open it in IDA pro, use the .idc script."));
+                       _("Save the function names and addresses for this game as a .map file. "
+                         "If you want to open the .map file in IDA Pro, use the .idc script."));
   symbols_menu->AppendSeparator();
   symbols_menu->Append(
       IDM_SAVE_MAP_FILE_WITH_CODES, _("Save Code"),
-      _("Save the entire disassembled code. This may take a several seconds"
-        " and may require between 50 and 100 MB of hard drive space. It will only save code"
-        " that are in the first 4 MB of memory, if you are debugging a game that load .rel"
-        " files with code to memory you may want to increase that to perhaps 8 MB, you can do"
-        " that from SymbolDB::SaveMap()."));
+      _("Save the entire disassembled code. This may take a several seconds "
+        "and may require between 50 and 100 MB of hard drive space. It will only save code "
+        "that is in the first 4 MB of memory. If you are debugging a game that loads .rel "
+        "files with code to memory, you may want to increase the limit to perhaps 8 MB. "
+        "That can be done in SymbolDB::SaveMap()."));
 
   symbols_menu->AppendSeparator();
   symbols_menu->Append(
       IDM_CREATE_SIGNATURE_FILE, _("&Create Signature File..."),
       _("Create a .dsy file that can be used to recognise these same functions in other games."));
   symbols_menu->Append(IDM_APPEND_SIGNATURE_FILE, _("Append to &Existing Signature File..."),
-                       _("Add any named functions missing from a .dsy file, so it can also "
-                         "recognise these additional functions in other games."));
+                       _("Add any named functions missing from a .dsy file, so that these "
+                         "additional functions can also be recognized in other games."));
   symbols_menu->Append(IDM_COMBINE_SIGNATURE_FILES, _("Combine Two Signature Files..."),
                        _("Make a new .dsy file which can recognise more functions, by combining "
                          "two existing files. The first input file has priority."));
   symbols_menu->Append(
       IDM_USE_SIGNATURE_FILE, _("Apply Signat&ure File..."),
-      _("Must use Generate symbol map first! Recognise names of any standard library functions "
-        "used in multiple games, by loading them from a .dsy file."));
+      _("Must use Generate Symbols first! Recognise names of any standard library functions "
+        "used in multiple games, by loading them from a .dsy, .csv, or .mega file."));
   symbols_menu->AppendSeparator();
   symbols_menu->Append(IDM_PATCH_HLE_FUNCTIONS, _("&Patch HLE Functions"));
   symbols_menu->Append(IDM_RENAME_SYMBOLS, _("&Rename Symbols from File..."));
@@ -467,6 +504,7 @@ wxMenu* MainMenuBar::CreateSymbolsMenu() const
 wxMenu* MainMenuBar::CreateProfilerMenu() const
 {
   auto* const profiler_menu = new wxMenu;
+  // i18n: "Profile" is used as a verb, not a noun.
   profiler_menu->AppendCheckItem(IDM_PROFILE_BLOCKS, _("&Profile Blocks"));
   profiler_menu->AppendSeparator();
   profiler_menu->Append(IDM_WRITE_PROFILE, _("&Write to profile.txt, Show"));
@@ -502,14 +540,14 @@ void MainMenuBar::RefreshMenuLabels() const
 {
   RefreshPlayMenuLabel();
   RefreshSaveStateMenuLabels();
-  RefreshWiiSystemMenuLabel();
+  RefreshWiiToolsLabels();
 }
 
 void MainMenuBar::RefreshPlayMenuLabel() const
 {
   auto* const item = FindItem(IDM_PLAY);
 
-  if (Core::GetState() == Core::CORE_RUN)
+  if (Core::GetState() == Core::State::Running)
     item->SetItemLabel(_("&Pause"));
   else
     item->SetItemLabel(_("&Play"));
@@ -533,25 +571,58 @@ void MainMenuBar::RefreshSaveStateMenuLabels() const
   }
 }
 
+void MainMenuBar::RefreshWiiToolsLabels() const
+{
+  // The Install WAD option should not be enabled while emulation is running, because
+  // having unexpected title changes can confuse emulated software; and of course, this is
+  // not possible on a real Wii and won't be if we have IOS LLE (or simply more accurate IOS HLE).
+  //
+  // For similar reasons, it should not be possible to export or import saves, because this can
+  // result in the emulated software being confused, or even worse, exported saves having
+  // inconsistent data.
+  const bool enable_wii_tools = !Core::IsRunning() || !SConfig::GetInstance().bWii;
+  for (const int index :
+       {IDM_MENU_INSTALL_WAD, IDM_EXPORT_ALL_SAVE, IDM_IMPORT_SAVE, IDM_IMPORT_NAND,
+        IDM_EXTRACT_CERTIFICATES, IDM_LOAD_WII_MENU, IDM_PERFORM_ONLINE_UPDATE_CURRENT,
+        IDM_PERFORM_ONLINE_UPDATE_EUR, IDM_PERFORM_ONLINE_UPDATE_JPN, IDM_PERFORM_ONLINE_UPDATE_KOR,
+        IDM_PERFORM_ONLINE_UPDATE_USA})
+  {
+    FindItem(index)->Enable(enable_wii_tools);
+  }
+  if (enable_wii_tools)
+    RefreshWiiSystemMenuLabel();
+}
+
+void MainMenuBar::EnableUpdateMenu(UpdateMenuMode mode) const
+{
+  FindItem(IDM_PERFORM_ONLINE_UPDATE_CURRENT)->Enable(mode == UpdateMenuMode::CurrentRegionOnly);
+  for (const int idm : {IDM_PERFORM_ONLINE_UPDATE_EUR, IDM_PERFORM_ONLINE_UPDATE_JPN,
+                        IDM_PERFORM_ONLINE_UPDATE_KOR, IDM_PERFORM_ONLINE_UPDATE_USA})
+  {
+    FindItem(idm)->Enable(mode == UpdateMenuMode::SpecificRegionsOnly);
+  }
+}
+
 void MainMenuBar::RefreshWiiSystemMenuLabel() const
 {
   auto* const item = FindItem(IDM_LOAD_WII_MENU);
 
-  const auto& sys_menu_loader = DiscIO::CNANDContentManager::Access().GetNANDLoader(
-      TITLEID_SYSMENU, Common::FROM_CONFIGURED_ROOT);
+  const auto& sys_menu_loader = DiscIO::NANDContentManager::Access().GetNANDLoader(
+      Titles::SYSTEM_MENU, Common::FROM_CONFIGURED_ROOT);
 
   if (sys_menu_loader.IsValid())
   {
-    const auto sys_menu_version = sys_menu_loader.GetTitleVersion();
-    const auto sys_menu_region = sys_menu_loader.GetCountryChar();
+    const u16 version_number = sys_menu_loader.GetTMD().GetTitleVersion();
+    const wxString version_string = StrToWxStr(DiscIO::GetSysMenuVersionString(version_number));
     item->Enable();
-    item->SetItemLabel(
-        wxString::Format(_("Load Wii System Menu %u%c"), sys_menu_version, sys_menu_region));
+    item->SetItemLabel(wxString::Format(_("Load Wii System Menu %s"), version_string));
+    EnableUpdateMenu(UpdateMenuMode::CurrentRegionOnly);
   }
   else
   {
     item->Enable(false);
     item->SetItemLabel(_("Load Wii System Menu"));
+    EnableUpdateMenu(UpdateMenuMode::SpecificRegionsOnly);
   }
 }
 

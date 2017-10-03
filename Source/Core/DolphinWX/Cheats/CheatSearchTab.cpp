@@ -2,6 +2,8 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "DolphinWX/Cheats/CheatSearchTab.h"
+
 #include <algorithm>
 #include <array>
 #include <cstring>
@@ -17,13 +19,13 @@
 #include <wx/textctrl.h>
 #include <wx/timer.h>
 
-#include "Common/CommonFuncs.h"
 #include "Common/CommonTypes.h"
 #include "Common/StringUtil.h"
-#include "Core/ActionReplay.h"
+#include "Common/Swap.h"
+
 #include "Core/Core.h"
 #include "Core/HW/Memmap.h"
-#include "DolphinWX/Cheats/CheatSearchTab.h"
+
 #include "DolphinWX/Cheats/CreateCodeDialog.h"
 #include "DolphinWX/WxUtils.h"
 
@@ -65,7 +67,9 @@ CheatSearchTab::CheatSearchTab(wxWindow* const parent) : wxPanel(parent)
                                           wxLC_REPORT | wxLC_SINGLE_SEL);
   m_lview_search_results->AppendColumn(_("Address"));
   m_lview_search_results->AppendColumn(_("Value"));
+  // i18n: Float means floating point number
   m_lview_search_results->AppendColumn(_("Value (float)"));
+  // i18n: Double means double-precision floating point number
   m_lview_search_results->AppendColumn(_("Value (double)"));
   m_lview_search_results->Bind(wxEVT_LIST_ITEM_ACTIVATED, &CheatSearchTab::OnListViewItemActivated,
                                this);
@@ -232,7 +236,7 @@ void CheatSearchTab::OnListViewItemSelected(wxListEvent&)
 
 void CheatSearchTab::OnTimerUpdate(wxTimerEvent&)
 {
-  if (Core::GetState() != Core::CORE_RUN)
+  if (Core::GetState() != Core::State::Running)
     return;
 
   // Only update the currently visible list rows.
